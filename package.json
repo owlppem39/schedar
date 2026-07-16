@@ -1,0 +1,30 @@
+{
+  "name": "schedar",
+  "version": "1.0.0",
+  "description": "장기 프로젝트에 특화된 스케줄 관리 앱",
+  "main": "main.js",
+  "author": "",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "package:mac": "electron-packager . Schedar --platform=darwin --arch=arm64,x64 --out=dist --overwrite --app-bundle-id=com.schedar.app --app-version=1.0.0 --icon=icon.icns",
+    "zip:mac": "cd dist && for d in Schedar-darwin-*; do ditto -c -k --sequesterRsrc --keepParent \"$d/Schedar.app\" \"$d.zip\"; done && cd ..",
+    "package:win": "electron-packager . Schedar --platform=win32 --arch=x64 --out=dist --overwrite",
+    "package:win:icon": "electron-packager . Schedar --platform=win32 --arch=x64 --out=dist --overwrite --app-version=1.0.0 --icon=icon.ico",
+    "zip:win": "cd dist && zip -r Schedar-win32-x64.zip Schedar-win32-x64 && cd .."
+  },
+  "devDependencies": {
+    "electron": "^31.0.2",
+    "electron-packager": "^17.1.2"
+  },
+  "files": [
+    "main.js",
+    "preload.js",
+    "index.html",
+    "widget.html",
+    "icon.png",
+    "icon.icns",
+    "icon.ico"
+  ]
+}

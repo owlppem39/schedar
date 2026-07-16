@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Schedar 타이머</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:#FFFFFF;color:#262A3B;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:6px;padding:16px;text-align:center;
+    -webkit-app-region:drag;user-select:none;
+    border-radius:14px;position:relative;
+    box-shadow:0 0 0 1px rgba(0,0,0,.06) inset;
+  }
+  .phase{font-weight:700;font-size:11px;color:#3A33C2;text-transform:uppercase;letter-spacing:.04em;}
+  .clock{font-size:42px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+  .setlabel{font-size:11px;color:#888;margin-bottom:4px;}
+  .controls{display:flex;gap:8px;-webkit-app-region:no-drag;}
+  button{border:none;border-radius:999px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .primary{background:#6C63FF;color:#fff;}
+  .ghost{background:#EEF0F7;color:#262A3B;}
+  .primary:active,.ghost:active{filter:brightness(.92);}
+  .close-btn{
+    position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:50%;
+    background:#F3F4F9;color:#ABAFC4;font-size:10px;padding:0;border:none;
+    display:flex;align-items:center;justify-content:center;-webkit-app-region:no-drag;cursor:pointer;
+  }
+  .close-btn:hover{color:#FF6B6B;}
+</style>
+</head>
+<body>
+  <button class="close-btn" id="closeBtn" title="닫기">✕</button>
+  <div class="phase" id="phase">작업 시간</div>
+  <div class="clock" id="clock">25:00</div>
+  <div class="setlabel" id="setlabel">세트 1 / 4</div>
+  <div class="controls">
+    <button class="ghost" id="skipBtn">건너뛰기</button>
+    <button class="primary" id="startBtn">시작</button>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+  if(!window.pomoBridge){
+    document.getElementById('phase').textContent = '연결 오류';
+    document.getElementById('clock').textContent = '--:--';
+    return;
+  }
+  window.pomoBridge.onState(function(s){
+    document.getElementById('phase').textContent = s.phaseLabel || '';
+    document.getElementById('clock').textContent = s.clockText || '--:--';
+    document.getElementById('setlabel').textContent = s.setLabel || '';
+    document.getElementById('startBtn').textContent = s.startLabel || '시작';
+    if(s.accent){
+      document.getElementById('phase').style.color = s.accent;
+      document.getElementById('startBtn').style.background = s.accent;
+    }
+  });
+  document.getElementById('closeBtn').addEventListener('click', function(){
+    window.close();
+  });
+  document.getElementById('startBtn').addEventListener('click', function(){
+    window.pomoBridge.sendControl('toggle');
+  });
+  document.getElementById('skipBtn').addEventListener('click', function(){
+    window.pomoBridge.sendControl('skip');
+  });
+  window.pomoBridge.widgetReady();
+})();
+</script>
+</body>
+</html>
