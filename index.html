@@ -488,6 +488,59 @@ body.platform-non-mac #titlebar{display:none;}
 .pomo-stats-total{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:12px;font-weight:700;}
 .pomo-stats-total span{color:var(--ink-soft);font-weight:600;font-size:11px;}
 
+/* ================= NOTES ================= */
+.notes-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;}
+@media (max-width:820px){.notes-layout{grid-template-columns:1fr;}}
+.notes-day-nav{display:flex;align-items:center;gap:6px;}
+.notes-day-nav span{font-size:11.5px;font-weight:700;color:var(--ink-soft);min-width:56px;text-align:center;}
+.notes-list{display:flex;flex-direction:column;gap:6px;margin-top:4px;}
+.note-item{display:flex;align-items:center;gap:8px;padding:9px 11px;background:var(--surface);border:1px solid var(--line);border-radius:11px;}
+.note-item .drag-handle{cursor:grab;color:var(--ink-faint);font-size:11px;letter-spacing:-1px;flex-shrink:0;}
+.note-item .drag-handle:active{cursor:grabbing;}
+.note-item.drag-over{box-shadow:inset 0 0 0 2px var(--accent);}
+.note-item .note-text{
+  flex:1;font-size:12.5px;border:none;background:transparent;padding:4px 6px;border-radius:6px;color:var(--ink);min-width:0;
+}
+.note-item .note-text:hover{background:rgba(0,0,0,.04);}
+.note-item .note-text:focus{background:#fff;outline:2px solid var(--accent);outline-offset:0;}
+.note-item .del{
+  width:20px;height:20px;border-radius:50%;border:1px solid var(--line);background:#fff;
+  display:flex;align-items:center;justify-content:center;color:var(--ink-faint);font-size:10px;flex-shrink:0;
+}
+.note-item .del:hover{color:var(--coral);border-color:var(--coral);}
+
+.rte-toolbar{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
+.rte-btn{
+  width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:var(--surface);
+  color:var(--ink-soft);font-size:12px;display:flex;align-items:center;justify-content:center;
+}
+.rte-btn:hover{border-color:var(--accent);color:var(--accent-ink);}
+.rte-btn.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);}
+.rte-size{padding:5px 8px;border-radius:8px;border:1px solid var(--line);font-size:11px;background:var(--surface);color:var(--ink-soft);}
+.rte-editor{
+  min-height:340px;padding:14px 16px;border-radius:12px;border:1px solid var(--line);background:transparent;
+  font-size:13.5px;line-height:1.9;color:var(--ink);outline:none;overflow-y:auto;
+}
+.rte-editor:focus{outline:2px solid var(--accent);outline-offset:-1px;}
+.rte-editor:empty::before{content:attr(data-placeholder);color:var(--ink-faint);}
+
+.task-note-item{display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:9px 11px;background:var(--surface);border:1px solid var(--line);border-radius:11px;cursor:grab;}
+.task-note-item.drag-over{box-shadow:inset 0 0 0 2px var(--accent);}
+.tni-row{display:flex;align-items:center;gap:8px;}
+.task-note-item .task-note-title{flex:1;font-size:12.5px;min-width:0;}
+.task-note-item .task-note-title.done{text-decoration:line-through;color:var(--ink-faint);}
+.tni-memo{
+  margin-left:28px;font-size:11.5px;padding:6px 9px;border:1px dashed var(--line);border-radius:8px;
+  background:transparent;color:var(--ink-soft);
+}
+.tni-memo:hover{background:rgba(0,0,0,.03);}
+.tni-memo:focus{background:#fff;border-style:solid;border-color:var(--accent);color:var(--ink);outline:none;}
+.tni-memo-add{
+  align-self:flex-start;margin-left:28px;font-size:11px;font-weight:600;color:var(--ink-faint);
+  background:transparent;border:none;padding:2px 4px;
+}
+.tni-memo-add:hover{color:var(--accent-ink);}
+
 #pomoFloatWidget{
   position:fixed;width:190px;background:var(--surface);border:1px solid var(--line);border-radius:16px;
   box-shadow:var(--shadow-l);padding:16px 14px 14px;text-align:center;z-index:500;cursor:grab;touch-action:none;
@@ -547,6 +600,10 @@ body.platform-non-mac #titlebar{display:none;}
     <button class="navbtn" data-page="pomodoro">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2"/><path d="M9 2h6"/><path d="M12 2v3"/></svg>
       <span>뽀모도로</span>
+    </button>
+    <button class="navbtn" data-page="notes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2h6l5 5v13a2 2 0 01-2 2H9a2 2 0 01-2-2V4a2 2 0 012-2z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></svg>
+      <span>메모</span>
     </button>
     <div class="nav-spacer"></div>
     <div class="side-foot">
@@ -803,6 +860,46 @@ body.platform-non-mac #titlebar{display:none;}
         </div>
       </div>
     </section>
+
+    <!-- ================= NOTES ================= -->
+    <section class="page" id="page-notes">
+      <div class="page-sticker-layer" id="pageStickerLayer-notes"></div>
+      <div class="page-head">
+        <div><div class="page-title">메모</div><div class="page-sub">자유롭게 적어두는 공간이에요</div></div>
+        <button class="btn sm page-sticker-btn" data-page="notes">스티커</button>
+      </div>
+      <div class="notes-layout">
+        <div class="card panel">
+          <div class="panel-title">일반 메모</div>
+          <div class="rte-toolbar">
+            <button type="button" class="rte-btn" data-cmd="bold" title="굵게"><b>B</b></button>
+            <button type="button" class="rte-btn" data-cmd="italic" title="기울임"><i>I</i></button>
+            <button type="button" class="rte-btn" data-cmd="strikeThrough" title="취소선"><s>S</s></button>
+            <select class="rte-size" id="generalNoteFontSize" title="글씨 크기">
+              <option value="2">작게</option>
+              <option value="3" selected>보통</option>
+              <option value="5">크게</option>
+              <option value="7">아주 크게</option>
+            </select>
+          </div>
+          <div class="rte-editor" id="generalNoteEditor" contenteditable="true" data-placeholder="자유롭게 적어보세요..."></div>
+        </div>
+
+        <div class="card panel">
+          <div class="panel-title">
+            <span>태스크 메모</span>
+            <div class="notes-day-nav">
+              <button class="icon-btn" id="notesPrevDay">‹</button>
+              <span id="notesDayLabel"></span>
+              <button class="icon-btn" id="notesNextDay">›</button>
+              <button class="btn ghost sm" id="notesTodayBtn">오늘</button>
+            </div>
+          </div>
+          <p class="hint">태스크의 순서를 변경해보세요.</p>
+          <div class="notes-list" id="dailyNotesList"></div>
+        </div>
+      </div>
+    </section>
   </main>
 </div>
 
@@ -887,7 +984,11 @@ let state = {
   projects:[],
   journal:{},
   stickers:{ journal:{}, pages:{} },
-  pomodoroLog:[]
+  pomodoroLog:[],
+  generalTimeLog:[],
+  generalNoteContent:'',
+  dayTaskOrder:{},
+  taskMemos:{}
 };
 
 let ui = {
@@ -907,7 +1008,9 @@ let ui = {
   bannerTimer:null,
   newTodoColor:'var(--accent)',
   pomo:{ seqIndex:0, remaining:25*60, running:false, started:false, timerId:null, projectId:'' },
-  pomoPipWindow:null
+  pomoPipWindow:null,
+  notesDay: todayISO,
+  notesMemoOpen: new Set()
 };
 
 async function loadState(){
@@ -922,6 +1025,15 @@ async function loadState(){
       state.settings.journalTrackers.builtin = Object.assign({meal:true,med:true,vitamin:true,exercise:true}, state.settings.journalTrackers.builtin||{});
       if(!state.settings.journalTrackers.custom) state.settings.journalTrackers.custom=[];
       if(!state.pomodoroLog) state.pomodoroLog=[];
+      if(!state.generalTimeLog) state.generalTimeLog=[];
+      if(!state.generalNoteContent) state.generalNoteContent='';
+      if(Array.isArray(state.generalNotes) && state.generalNotes.length && !state.generalNoteContent){
+        state.generalNoteContent = state.generalNotes.map(n=>`<div>${escapeHtml(n.text||'')}</div>`).join('');
+      }
+      delete state.generalNotes;
+      delete state.dailyNotes;
+      if(!state.dayTaskOrder) state.dayTaskOrder={};
+      if(!state.taskMemos) state.taskMemos={};
       // migrate old single/array-of-strings banner formats
       if(state.settings.bannerImg && (!state.settings.bannerImages || state.settings.bannerImages.length===0)){
         state.settings.bannerImages = [state.settings.bannerImg];
@@ -1064,6 +1176,7 @@ function formatDuration(mins){
 function allTimeLogEntries(){
   const out = [];
   state.projects.forEach(p=>{ (p.timeLog||[]).forEach(e=> out.push({...e, projectId:p.id, projectTitle:p.title, color:p.color})); });
+  (state.generalTimeLog||[]).forEach(e=> out.push({...e, projectId:null, projectTitle:'일반', color:'var(--ink-faint)'}));
   return out;
 }
 
@@ -2729,7 +2842,7 @@ function renderPomoProjectSelect(){
 function renderPomoStats(){
   const log = (state.pomodoroLog||[]).filter(e=>e.date===todayISO);
   const byProject = {};
-  let generalCount=0, generalMinutes=0;
+  let generalCount=0, generalMinutes=0, generalUnsynced=0;
   log.forEach(e=>{
     const isSet = e.kind!=='short'; // short breaks add to minutes but don't count as a "세트"
     if(e.projectId){
@@ -2740,6 +2853,7 @@ function renderPomoStats(){
     } else {
       if(isSet) generalCount++;
       generalMinutes+=e.minutes;
+      if(!e.synced) generalUnsynced+=e.minutes;
     }
   });
   const list = $('#pomoStatsList');
@@ -2762,20 +2876,27 @@ function renderPomoStats(){
       <span class="ps-title">일반</span>
       <span class="ps-count">${generalCount}세트</span>
       <span class="ps-dur">${formatDuration(generalMinutes)}</span>
+      ${generalUnsynced>0?`<button class="btn sm ps-sync" data-proj="">작업시간에 추가 (+${formatDuration(generalUnsynced)})</button>`:''}
     </div>`);
   }
   list.innerHTML = rows.join('') || '<div class="empty-hint">오늘 완료한 세트가 없어요. 타이머를 시작해보세요!</div>';
   $$('.ps-sync', list).forEach(b=> b.addEventListener('click', ()=>{
     const pid = b.dataset.proj;
-    const entries = (state.pomodoroLog||[]).filter(e=>e.date===todayISO && e.projectId===pid && !e.synced);
+    const entries = (state.pomodoroLog||[]).filter(e=>e.date===todayISO && (e.projectId||'')===pid && !e.synced);
     const totalMin = entries.reduce((s,e)=>s+e.minutes,0);
     if(totalMin<=0) return;
-    const p = state.projects.find(x=>x.id===pid);
-    p.timeLog = p.timeLog||[];
-    p.timeLog.push({id:uid(), date:todayISO, hours:Math.floor(totalMin/60), minutes:totalMin%60});
+    const entry = {id:uid(), date:todayISO, hours:Math.floor(totalMin/60), minutes:totalMin%60};
+    if(pid){
+      const p = state.projects.find(x=>x.id===pid);
+      p.timeLog = p.timeLog||[];
+      p.timeLog.push(entry);
+    } else {
+      state.generalTimeLog = state.generalTimeLog||[];
+      state.generalTimeLog.push(entry);
+    }
     entries.forEach(e=> e.synced=true);
     saveState(); renderPomoStats(); renderCalendar(); renderHome(); renderProjectList();
-    toast('프로젝트 작업시간에 추가했어요');
+    toast('작업시간에 추가했어요');
   }));
 
   const totalCount = log.filter(e=>e.kind!=='short').length;
@@ -2809,20 +2930,162 @@ function applyPomoSettingChange(){
 $$('.pomo-settings-grid input').forEach(inp=> inp.addEventListener('change', applyPomoSettingChange));
 
 /* ---------------- render all ---------------- */
-function renderAll(){ renderHome(); renderCalendar(); renderTodo(); renderJournal(); renderPomoAll(); }
+/* ================= NOTES ================= */
+function renderNotesPage(){
+  initGeneralNoteEditor();
+  renderDailyNotes();
+  renderPageStickerLayer('notes');
+}
+
+/* -------- 일반 메모: simple rich-text editor (bold/italic/strike/size) -------- */
+let generalNoteEditorInit = false;
+function initGeneralNoteEditor(){
+  const editor = $('#generalNoteEditor');
+  if(editor.innerHTML !== state.generalNoteContent){
+    editor.innerHTML = state.generalNoteContent || '';
+  }
+  if(generalNoteEditorInit) return;
+  generalNoteEditorInit = true;
+
+  let saveTimer2 = null;
+  editor.addEventListener('input', ()=>{
+    clearTimeout(saveTimer2);
+    saveTimer2 = setTimeout(()=>{ state.generalNoteContent = editor.innerHTML; saveState(); }, 300);
+  });
+
+  $$('.rte-btn').forEach(btn=>{
+    btn.addEventListener('mousedown', e=> e.preventDefault()); // keep editor selection/focus
+    btn.addEventListener('click', ()=>{
+      editor.focus();
+      document.execCommand(btn.dataset.cmd, false, null);
+      state.generalNoteContent = editor.innerHTML;
+      saveState();
+    });
+  });
+
+  let savedRange = null;
+  editor.addEventListener('mouseup', ()=>{
+    const sel = window.getSelection();
+    if(sel.rangeCount>0 && editor.contains(sel.anchorNode)) savedRange = sel.getRangeAt(0).cloneRange();
+  });
+  editor.addEventListener('keyup', ()=>{
+    const sel = window.getSelection();
+    if(sel.rangeCount>0 && editor.contains(sel.anchorNode)) savedRange = sel.getRangeAt(0).cloneRange();
+  });
+  $('#generalNoteFontSize').addEventListener('change', e=>{
+    editor.focus();
+    if(savedRange){
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(savedRange);
+    }
+    document.execCommand('fontSize', false, e.target.value);
+    state.generalNoteContent = editor.innerHTML;
+    saveState();
+  });
+}
+
+/* -------- 태스크 메모: shows that day's actual calendar tasks, reorderable -------- */
+function getOrderedDayTasks(iso){
+  const items = collectDayItems(iso);
+  const order = state.dayTaskOrder[iso];
+  if(!order || !order.length) return items;
+  const rank = id => { const i = order.indexOf(id); return i===-1 ? Infinity : i; };
+  return items.slice().sort((a,b)=> rank(a.id)-rank(b.id));
+}
+function renderDailyNotes(){
+  const d = new Date(ui.notesDay+'T00:00:00');
+  $('#notesDayLabel').textContent = ui.notesDay===todayISO ? '오늘' : `${d.getMonth()+1}.${d.getDate()} (${DOW_KR[d.getDay()]})`;
+  const wrap = $('#dailyNotesList');
+  const items = getOrderedDayTasks(ui.notesDay);
+  if(items.length===0){
+    wrap.innerHTML = '<div class="empty-hint">이 날짜에 예정된 태스크가 없어요. 캘린더나 투두에서 날짜를 지정해보세요.</div>';
+    return;
+  }
+  wrap.innerHTML = items.map(it=>{
+    const memoVal = (state.taskMemos||{})[it.id]||'';
+    const isOpen = !!memoVal || ui.notesMemoOpen.has(it.id);
+    return `
+    <div class="note-item task-note-item" draggable="true" data-id="${it.id}">
+      <div class="tni-row">
+        <span class="drag-handle" title="드래그해서 순서 변경">⋮⋮</span>
+        <div class="checkbox round cb" data-id="${it.id}" data-kind="${it.kind}" data-proj="${it.projectId||''}">${it.done?'✓':''}</div>
+        <span class="task-note-title ${it.done?'done':''}">${escapeHtml(it.title)}</span>
+        ${it.kind==='subtask'?`<span class="tag-pill">📁 ${escapeHtml(it.projectTitle)}</span>`:''}
+      </div>
+      ${isOpen
+        ? `<input type="text" class="tni-memo" data-id="${it.id}" placeholder="메모 추가..." value="${escapeHtml(memoVal)}">`
+        : `<button type="button" class="tni-memo-add" data-id="${it.id}">+ 메모</button>`}
+    </div>`;
+  }).join('');
+
+  $$('.checkbox.cb', wrap).forEach(cb=> cb.addEventListener('click', ()=>{
+    toggleDone(cb.dataset.kind, cb.dataset.id, cb.dataset.proj);
+    renderDailyNotes(); renderCalendar(); renderHome(); renderTodo();
+  }));
+  $$('.tni-memo-add', wrap).forEach(btn=> btn.addEventListener('click', ()=>{
+    ui.notesMemoOpen.add(btn.dataset.id);
+    renderDailyNotes();
+    const input = wrap.querySelector(`.tni-memo[data-id="${btn.dataset.id}"]`);
+    if(input) input.focus();
+  }));
+  $$('.tni-memo', wrap).forEach(input=>{
+    input.addEventListener('blur', ()=>{
+      state.taskMemos = state.taskMemos||{};
+      const val = input.value.trim();
+      if(val){ state.taskMemos[input.dataset.id] = val; }
+      else{ delete state.taskMemos[input.dataset.id]; ui.notesMemoOpen.delete(input.dataset.id); }
+      saveState(); renderDailyNotes();
+    });
+    input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); input.blur(); } });
+  });
+
+  let dragging = null;
+  $$('.task-note-item', wrap).forEach(row=>{
+    row.addEventListener('dragstart', e=>{
+      if(e.target.closest('.checkbox') || e.target.closest('.tni-memo') || e.target.closest('.tni-memo-add')){ e.preventDefault(); return; }
+      dragging = row.dataset.id;
+      e.dataTransfer.effectAllowed='move';
+    });
+    row.addEventListener('dragover', e=>{ if(dragging){ e.preventDefault(); row.classList.add('drag-over'); } });
+    row.addEventListener('dragleave', ()=> row.classList.remove('drag-over'));
+    row.addEventListener('drop', e=>{
+      e.preventDefault();
+      row.classList.remove('drag-over');
+      if(!dragging) return;
+      const fromIdx = items.findIndex(it=>it.id===dragging);
+      const toIdx = items.findIndex(it=>it.id===row.dataset.id);
+      dragging = null;
+      if(fromIdx===-1 || toIdx===-1 || fromIdx===toIdx) return;
+      const [moved] = items.splice(fromIdx,1);
+      items.splice(toIdx,0,moved);
+      state.dayTaskOrder[ui.notesDay] = items.map(it=>it.id);
+      saveState(); renderDailyNotes();
+    });
+    row.addEventListener('dragend', ()=>{ dragging=null; $$('.task-note-item', wrap).forEach(r=>r.classList.remove('drag-over')); });
+  });
+}
+function shiftNotesDay(delta){
+  const d = new Date(ui.notesDay+'T00:00:00');
+  d.setDate(d.getDate()+delta);
+  ui.notesDay = toISO(d);
+  renderDailyNotes();
+}
+$('#notesPrevDay').addEventListener('click', ()=>shiftNotesDay(-1));
+$('#notesNextDay').addEventListener('click', ()=>shiftNotesDay(1));
+$('#notesTodayBtn').addEventListener('click', ()=>{ ui.notesDay=todayISO; renderDailyNotes(); });
+
+function renderAll(){ renderHome(); renderCalendar(); renderTodo(); renderJournal(); renderPomoAll(); renderNotesPage(); }
 $('#quickAddBtn').addEventListener('click', ()=>openTodoModal());
 $('#addWorktimeBtn').addEventListener('click', ()=> openWorktimeModal());
 $('#pomoAddWorktimeBtn').addEventListener('click', ()=> openWorktimeModal());
 function openWorktimeModal(){
   const activeProjects = state.projects.filter(p=>p.active!==false && !p.completed);
-  if(activeProjects.length===0){
-    toast('진행 중인 프로젝트가 없어요. 먼저 프로젝트를 추가해주세요');
-    return;
-  }
   openModal(`
     <h3>작업시간 추가</h3>
     <div class="field"><label>프로젝트</label>
       <select id="wtProjectSelect">
+        <option value="">일반 (프로젝트 없음)</option>
         ${activeProjects.map(p=>`<option value="${p.id}">${escapeHtml(p.title)}</option>`).join('')}
       </select>
     </div>
@@ -2842,9 +3105,14 @@ function openWorktimeModal(){
       const hours = parseInt(root.querySelector('#wtHours').value)||0;
       const minutes = parseInt(root.querySelector('#wtMinutes').value)||0;
       if(hours<=0 && minutes<=0){ toast('작업시간을 입력해주세요'); return; }
-      const p = state.projects.find(x=>x.id===pid);
-      p.timeLog = p.timeLog||[];
-      p.timeLog.push({id:uid(), date, hours, minutes});
+      if(pid){
+        const p = state.projects.find(x=>x.id===pid);
+        p.timeLog = p.timeLog||[];
+        p.timeLog.push({id:uid(), date, hours, minutes});
+      } else {
+        state.generalTimeLog = state.generalTimeLog||[];
+        state.generalTimeLog.push({id:uid(), date, hours, minutes});
+      }
       saveState(); closeModal(); renderHome(); renderCalendar(); renderProjectList();
       toast('작업시간을 추가했어요');
     });

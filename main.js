@@ -2,6 +2,18 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
+// Virtual machines (VMware/VirtualBox/Parallels etc.) sometimes don't expose
+// working GPU acceleration, which makes Electron's renderer crash right after
+// launch (window flashes open then closes). Rather than always disabling GPU
+// acceleration (which would cost real performance on normal hardware for no
+// reason), we only fall back to software rendering if we actually detect a
+// crash - and remember that choice for next time on this machine.
+const GPU_FALLBACK_FLAG = path.join(app.getPath('userData'), '.force-sw-render');
+const softwareRenderMode = fs.existsSync(GPU_FALLBACK_FLAG);
+if (softwareRenderMode) {
+  app.disableHardwareAcceleration();
+}
+
 const DATA_FILE = () => path.join(app.getPath('userData'), 'schedar-data.json');
 
 function loadStore() {
@@ -76,6 +88,20 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: true,
     },
+  });
+
+  // Self-healing: if the renderer crashes (typical symptom of broken GPU
+  // passthrough in a VM) and we haven't already switched to software
+  // rendering, flip that switch and relaunch once. If it crashes again even
+  // in software mode, we don't loop forever - something else is wrong.
+  mainWin.webContents.on('render-process-gone', (event, details) => {
+    if (details.reason === 'clean-exit') return;
+    console.error('Renderer process gone:', details.reason);
+    if (!softwareRenderMode) {
+      try { fs.writeFileSync(GPU_FALLBACK_FLAG, String(Date.now())); } catch (e) {}
+      app.relaunch();
+      app.exit(0);
+    }
   });
 
   mainWin.loadFile('index.html');
