@@ -1808,8 +1808,8 @@ function renderWorktimeSummary(){
 }
 function renderUnscheduledPanel(){
   const items=[];
-  state.todos.filter(t=>!t.date).forEach(t=>items.push({id:t.id,kind:'todo',title:t.title,color:t.color||'var(--accent)',done:t.done,isDeadline:!!t.isDeadline}));
-  state.projects.forEach(p=>{ (p.subtasks||[]).filter(s=>!s.date).forEach(s=>items.push({id:s.id,kind:'subtask',title:s.title,color:p.color,done:s.done,projectId:p.id,projectTitle:p.title})); });
+  state.todos.filter(t=>!t.date && !t.done).forEach(t=>items.push({id:t.id,kind:'todo',title:t.title,color:t.color||'var(--accent)',done:t.done,isDeadline:!!t.isDeadline}));
+  state.projects.forEach(p=>{ (p.subtasks||[]).filter(s=>!s.date && !s.done).forEach(s=>items.push({id:s.id,kind:'subtask',title:s.title,color:p.color,done:s.done,projectId:p.id,projectTitle:p.title})); });
   const wrap = $('#unscheduledList');
   if(!wrap) return;
   if(items.length===0){ wrap.innerHTML='<div class="empty-hint">날짜 미정 태스크가 없어요.</div>'; }
