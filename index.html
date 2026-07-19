@@ -194,14 +194,15 @@ body.platform-non-mac #titlebar{display:none;}
 @media (max-width:860px){.cal-layout{grid-template-columns:1fr;}}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);border-top:1px solid var(--line);border-left:1px solid var(--line);border-radius:var(--radius-m);overflow:hidden;background:var(--surface);}
 .cal-dow{padding:6px 0;text-align:center;font-size:10px;font-weight:700;color:var(--ink-soft);background:var(--surface-alt);border-right:1px solid var(--line);border-bottom:1px solid var(--line);}
-.cal-cell{min-height:78px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:5px;display:flex;flex-direction:column;gap:2px;cursor:pointer;transition:background .12s;position:relative;}
+.cal-cell{min-height:78px;min-width:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:5px;display:flex;flex-direction:column;gap:2px;cursor:pointer;transition:background .12s;position:relative;}
 .cal-cell:hover{background:var(--surface-alt);}
 .cal-cell.other{background:#FAFAFC;color:var(--ink-faint);}
 .cal-cell.selected{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent);}
 .cal-cell.dragover{background:var(--sage-soft);box-shadow:inset 0 0 0 2px var(--sage);}
+#unscheduledPanel.dragover{box-shadow:inset 0 0 0 2px var(--coral);background:var(--coral-soft);}
 .cal-daynum{font-size:10.5px;font-weight:600;}
 .cal-cell.today .cal-daynum{background:var(--accent);color:#fff;width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
-.cal-chip{font-size:9.5px;padding:1.5px 5px;border-radius:5px;background:var(--accent-soft);color:var(--accent-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;cursor:grab;}
+.cal-chip{font-size:9.5px;padding:1.5px 5px;border-radius:5px;background:var(--accent-soft);color:var(--accent-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;cursor:grab;min-width:0;max-width:100%;}
 .cal-chip.more{background:transparent;color:var(--ink-faint);font-weight:400;}
 
 .day-panel{padding:13px;position:sticky;top:0;}
@@ -304,6 +305,12 @@ body.platform-non-mac #titlebar{display:none;}
 .subtask-item .sub-title-edit:focus{background:#fff;outline:2px solid var(--accent);outline-offset:0;}
 .subtask-item.done .sub-title-edit{text-decoration:line-through;color:var(--ink-faint);}
 .subtask-item .date-tag{font-size:9.5px;color:var(--ink-soft);flex-shrink:0;}
+.subtask-item .sub-date-edit{
+  font-size:9.5px;color:var(--ink-soft);flex-shrink:0;border:1px solid transparent;background:transparent;
+  padding:3px 4px;border-radius:6px;width:100px;
+}
+.subtask-item .sub-date-edit:hover{background:rgba(0,0,0,.04);}
+.subtask-item .sub-date-edit:focus{background:#fff;border-color:var(--accent);outline:none;color:var(--ink);}
 .subtask-item .del{
   width:20px;height:20px;border-radius:50%;border:1px solid var(--line);background:#fff;
   display:flex;align-items:center;justify-content:center;color:var(--ink-faint);font-size:10px;flex-shrink:0;
@@ -516,7 +523,7 @@ body.platform-non-mac #titlebar{display:none;}
 }
 .rte-btn:hover{border-color:var(--accent);color:var(--accent-ink);}
 .rte-btn.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);}
-.rte-size{padding:5px 8px;border-radius:8px;border:1px solid var(--line);font-size:11px;background:var(--surface);color:var(--ink-soft);}
+.rte-sep{width:1px;height:18px;background:var(--line);margin:0 2px;}
 .rte-editor{
   min-height:340px;padding:14px 16px;border-radius:12px;border:1px solid var(--line);background:transparent;
   font-size:13.5px;line-height:1.9;color:var(--ink);outline:none;overflow-y:auto;
@@ -705,8 +712,8 @@ body.platform-non-mac #titlebar{display:none;}
           </div>
         </div>
       </div>
-      <div class="card" style="padding:14px;margin-top:14px;">
-        <div class="panel-title">날짜 미정 태스크 <span style="font-weight:400;color:var(--ink-soft);font-size:10.5px;">드래그해서 캘린더에 놓아보세요</span></div>
+      <div class="card" id="unscheduledPanel" style="padding:14px;margin-top:14px;">
+        <div class="panel-title">날짜 미정 태스크 <span style="font-weight:400;color:var(--ink-soft);font-size:10.5px;">캘린더와 서로 드래그해서 날짜를 옮기거나 초기화해보세요</span></div>
         <div class="unscheduled-list" id="unscheduledList"></div>
       </div>
     </section>
@@ -875,12 +882,9 @@ body.platform-non-mac #titlebar{display:none;}
             <button type="button" class="rte-btn" data-cmd="bold" title="굵게"><b>B</b></button>
             <button type="button" class="rte-btn" data-cmd="italic" title="기울임"><i>I</i></button>
             <button type="button" class="rte-btn" data-cmd="strikeThrough" title="취소선"><s>S</s></button>
-            <select class="rte-size" id="generalNoteFontSize" title="글씨 크기">
-              <option value="2">작게</option>
-              <option value="3" selected>보통</option>
-              <option value="5">크게</option>
-              <option value="7">아주 크게</option>
-            </select>
+            <span class="rte-sep"></span>
+            <button type="button" class="rte-btn" id="rteSizeDown" title="글씨 작게">－</button>
+            <button type="button" class="rte-btn" id="rteSizeUp" title="글씨 크게">＋</button>
           </div>
           <div class="rte-editor" id="generalNoteEditor" contenteditable="true" data-placeholder="자유롭게 적어보세요..."></div>
         </div>
@@ -1808,14 +1812,31 @@ function renderUnscheduledPanel(){
   state.projects.forEach(p=>{ (p.subtasks||[]).filter(s=>!s.date).forEach(s=>items.push({id:s.id,kind:'subtask',title:s.title,color:p.color,done:s.done,projectId:p.id,projectTitle:p.title})); });
   const wrap = $('#unscheduledList');
   if(!wrap) return;
-  if(items.length===0){ wrap.innerHTML='<div class="empty-hint">날짜 미정 태스크가 없어요.</div>'; return; }
-  wrap.innerHTML = items.map(it=>`
-    <div class="day-card" draggable="true" data-id="${it.id}" data-kind="${it.kind}" data-proj="${it.projectId||''}" style="border-left-color:${it.color!=='var(--accent)'?it.color:'var(--accent)'};">
-      <div class="body"><div class="t">${escapeHtml(it.title)}</div>${it.kind==='subtask'?`<div class="m">📁 ${escapeHtml(it.projectTitle)}</div>`:(it.isDeadline?'<div class="m">⏰ 마감</div>':'')}</div>
-    </div>`).join('');
+  if(items.length===0){ wrap.innerHTML='<div class="empty-hint">날짜 미정 태스크가 없어요.</div>'; }
+  else{
+    wrap.innerHTML = items.map(it=>`
+      <div class="day-card" draggable="true" data-id="${it.id}" data-kind="${it.kind}" data-proj="${it.projectId||''}" style="border-left-color:${it.color!=='var(--accent)'?it.color:'var(--accent)'};">
+        <div class="body"><div class="t">${escapeHtml(it.title)}</div>${it.kind==='subtask'?`<div class="m">📁 ${escapeHtml(it.projectTitle)}</div>`:(it.isDeadline?'<div class="m">⏰ 마감</div>':'')}</div>
+      </div>`).join('');
+  }
   $$('.day-card', wrap).forEach(card=>{
     card.addEventListener('dragstart', e=>{ ui.dragItem={id:card.dataset.id,kind:card.dataset.kind,projectId:card.dataset.proj}; e.dataTransfer.effectAllowed='move'; });
   });
+
+  const panel = $('#unscheduledPanel');
+  if(panel && !panel.dataset.dropBound){
+    panel.dataset.dropBound = '1';
+    panel.addEventListener('dragover', e=>{ if(ui.dragItem){ e.preventDefault(); panel.classList.add('dragover'); } });
+    panel.addEventListener('dragleave', e=>{ if(!panel.contains(e.relatedTarget)) panel.classList.remove('dragover'); });
+    panel.addEventListener('drop', e=>{
+      e.preventDefault();
+      panel.classList.remove('dragover');
+      if(!ui.dragItem) return;
+      moveItemToDate(ui.dragItem, null);
+      ui.dragItem = null;
+      saveState(); renderCalendar(); renderHome(); renderTodo();
+    });
+  }
 }
 function toggleDone(kind,id,projId){
   if(kind==='todo'){ const t=state.todos.find(x=>x.id===id); if(t){ t.done=!t.done; } }
@@ -2040,7 +2061,7 @@ function renderProjectItemsInto(wrap, list){
             <span class="drag-handle" title="드래그해서 순서 변경">⋮⋮</span>
             <div class="checkbox round sub-cb" data-proj="${p.id}" data-id="${s.id}" style="width:15px;height:15px;${s.done?`background:${p.color};border-color:${p.color};`:''}">${s.done?'✓':''}</div>
             <input type="text" class="sub-title-edit" data-proj="${p.id}" data-id="${s.id}" value="${escapeHtml(s.title)}">
-            ${s.date?`<span class="date-tag">${fmtShort(s.date)}</span>`:''}
+            <input type="date" class="sub-date-edit" data-proj="${p.id}" data-id="${s.id}" value="${s.date||''}">
             <button class="del sub-del" data-proj="${p.id}" data-id="${s.id}">✕</button>
           </div>`).join('')}
       </div>
@@ -2105,12 +2126,20 @@ function renderProjectItemsInto(wrap, list){
       if(e.key==='Enter'){ e.preventDefault(); input.blur(); }
     });
   });
+  $$('.sub-date-edit', wrap).forEach(input=>{
+    input.addEventListener('change', ()=>{
+      const p = state.projects.find(x=>x.id===input.dataset.proj);
+      const s = (p.subtasks||[]).find(x=>x.id===input.dataset.id);
+      s.date = input.value || null;
+      saveState(); renderHome(); renderCalendar();
+    });
+  });
 
   /* drag to reorder subtasks within the same project */
   let draggingSub = null;
   $$('.subtask-item', wrap).forEach(row=>{
     row.addEventListener('dragstart', e=>{
-      if(e.target.closest('.sub-title-edit') || e.target.closest('.sub-cb') || e.target.closest('.sub-del')){ e.preventDefault(); return; }
+      if(e.target.closest('.sub-title-edit') || e.target.closest('.sub-date-edit') || e.target.closest('.sub-cb') || e.target.closest('.sub-del')){ e.preventDefault(); return; }
       draggingSub = {projId: row.dataset.proj, subId: row.dataset.id};
       e.dataTransfer.effectAllowed='move';
     });
@@ -2941,11 +2970,9 @@ function renderNotesPage(){
 let generalNoteEditorInit = false;
 function initGeneralNoteEditor(){
   const editor = $('#generalNoteEditor');
-  if(editor.innerHTML !== state.generalNoteContent){
-    editor.innerHTML = state.generalNoteContent || '';
-  }
-  if(generalNoteEditorInit) return;
+  if(generalNoteEditorInit) return; // only load from state once - never clobber live edits/selection afterwards
   generalNoteEditorInit = true;
+  editor.innerHTML = state.generalNoteContent || '';
 
   let saveTimer2 = null;
   editor.addEventListener('input', ()=>{
@@ -2953,7 +2980,7 @@ function initGeneralNoteEditor(){
     saveTimer2 = setTimeout(()=>{ state.generalNoteContent = editor.innerHTML; saveState(); }, 300);
   });
 
-  $$('.rte-btn').forEach(btn=>{
+  $$('.rte-btn[data-cmd]').forEach(btn=>{
     btn.addEventListener('mousedown', e=> e.preventDefault()); // keep editor selection/focus
     btn.addEventListener('click', ()=>{
       editor.focus();
@@ -2963,26 +2990,18 @@ function initGeneralNoteEditor(){
     });
   });
 
-  let savedRange = null;
-  editor.addEventListener('mouseup', ()=>{
-    const sel = window.getSelection();
-    if(sel.rangeCount>0 && editor.contains(sel.anchorNode)) savedRange = sel.getRangeAt(0).cloneRange();
-  });
-  editor.addEventListener('keyup', ()=>{
-    const sel = window.getSelection();
-    if(sel.rangeCount>0 && editor.contains(sel.anchorNode)) savedRange = sel.getRangeAt(0).cloneRange();
-  });
-  $('#generalNoteFontSize').addEventListener('change', e=>{
+  function adjustFontSize(delta){
     editor.focus();
-    if(savedRange){
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(savedRange);
-    }
-    document.execCommand('fontSize', false, e.target.value);
+    const current = parseInt(document.queryCommandValue('fontSize'), 10) || 3;
+    const next = Math.max(1, Math.min(7, current + delta));
+    document.execCommand('fontSize', false, String(next));
     state.generalNoteContent = editor.innerHTML;
     saveState();
-  });
+  }
+  const sizeUpBtn = $('#rteSizeUp'), sizeDownBtn = $('#rteSizeDown');
+  [sizeUpBtn, sizeDownBtn].forEach(btn=> btn.addEventListener('mousedown', e=> e.preventDefault())); // same trick as other buttons - avoids losing the text selection (a <select> dropdown can't do this, which is why it broke)
+  sizeUpBtn.addEventListener('click', ()=> adjustFontSize(1));
+  sizeDownBtn.addEventListener('click', ()=> adjustFontSize(-1));
 }
 
 /* -------- 태스크 메모: shows that day's actual calendar tasks, reorderable -------- */
