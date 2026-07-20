@@ -70,6 +70,7 @@ ipcMain.handle('storage:list', (event, prefix, shared) => {
 let mainWin = null;
 let widgetWin = null;
 const isMac = process.platform === 'darwin';
+let lastCrashAt = 0;
 
 function createWindow() {
   mainWin = new BrowserWindow({
@@ -90,18 +91,38 @@ function createWindow() {
     },
   });
 
-  // Self-healing: if the renderer crashes (typical symptom of broken GPU
-  // passthrough in a VM) and we haven't already switched to software
-  // rendering, flip that switch and relaunch once. If it crashes again even
-  // in software mode, we don't loop forever - something else is wrong.
+  // Chromium throttles timers (setInterval/setTimeout) in windows that are
+  // minimized or not visible/focused, to save power. That's exactly what
+  // breaks the Pomodoro countdown when the main window is in the background
+  // (e.g. while using the always-on-top mini widget and working in another
+  // app). Disabling it keeps the timer ticking accurately at all times.
+  mainWin.webContents.setBackgroundThrottling(false);
+
+  // Self-healing on renderer crash. First crash: switch to software
+  // rendering (typical fix for broken GPU passthrough in a VM) and relaunch
+  // the whole app once. Any crash after that: don't relaunch the whole app
+  // again (that flag is already set) - just recreate the window, so a rare
+  // one-off crash doesn't permanently kill the app. A basic cooldown guards
+  // against a fast crash-loop hammering the machine.
   mainWin.webContents.on('render-process-gone', (event, details) => {
     if (details.reason === 'clean-exit') return;
     console.error('Renderer process gone:', details.reason);
+    const now = Date.now();
     if (!softwareRenderMode) {
-      try { fs.writeFileSync(GPU_FALLBACK_FLAG, String(Date.now())); } catch (e) {}
+      try { fs.writeFileSync(GPU_FALLBACK_FLAG, String(now)); } catch (e) {}
       app.relaunch();
       app.exit(0);
+      return;
     }
+    if (now - lastCrashAt < 8000) {
+      // crashed again within 8s of the last recovery - stop trying so we
+      // don't loop forever; let it close normally this time.
+      return;
+    }
+    lastCrashAt = now;
+    setTimeout(() => {
+      if (!mainWin || mainWin.isDestroyed()) createWindow();
+    }, 400);
   });
 
   mainWin.loadFile('index.html');
@@ -132,6 +153,7 @@ function createWidgetWindow() {
       sandbox: true,
     },
   });
+  widgetWin.webContents.setBackgroundThrottling(false);
   if (process.platform === 'darwin') {
     widgetWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   }
