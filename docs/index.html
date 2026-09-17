@@ -1080,92 +1080,21 @@ async function ghPutFileSimple(cfg, content, sha){
     })
   });
 }
-async function ghPutFileViaGitData(cfg, content){
-  // Handles files too large for the simple Contents API (roughly >1MB) via
-  // the lower-level Git Data API (blob -> tree -> commit -> ref update).
-  const branch = cfg.branch||'main';
-  const refRes = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/git/refs/heads/${encodeURIComponent(branch)}`, { headers: ghHeaders(cfg) });
-  let commitSha = null, baseTreeSha = null;
-  if(refRes.status===404){
-    // brand-new, completely empty repo (no commits yet) - we'll create the
-    // very first commit below instead of building on an existing one
-  } else if(!refRes.ok){
-    throw new Error('브랜치 정보를 가져오지 못했어요 ('+refRes.status+')');
-  } else {
-    const ref = await refRes.json();
-    commitSha = ref.object.sha;
-    const commitRes = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/git/commits/${commitSha}`, { headers: ghHeaders(cfg) });
-    if(!commitRes.ok) throw new Error('커밋 정보를 가져오지 못했어요');
-    const commit = await commitRes.json();
-    baseTreeSha = commit.tree.sha;
-  }
-  const blobRes = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/git/blobs`, {
-    method:'POST', headers: ghHeaders(cfg, {'Content-Type':'application/json'}),
-    body: JSON.stringify({ content: utf8ToBase64(content), encoding:'base64' })
-  });
-  if(!blobRes.ok) throw new Error('데이터 업로드에 실패했어요');
-  const blob = await blobRes.json();
-  const treeBody = { tree:[{path:cfg.path, mode:'100644', type:'blob', sha:blob.sha}] };
-  if(baseTreeSha) treeBody.base_tree = baseTreeSha;
-  const treeRes = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/git/trees`, {
-    method:'POST', headers: ghHeaders(cfg, {'Content-Type':'application/json'}),
-    body: JSON.stringify(treeBody)
-  });
-  if(!treeRes.ok) throw new Error('트리 생성에 실패했어요');
-  const tree = await treeRes.json();
-  const commitBody = { message:'Schedar sync '+new Date().toISOString(), tree:tree.sha };
-  if(commitSha) commitBody.parents = [commitSha];
-  const newCommitRes = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/git/commits`, {
-    method:'POST', headers: ghHeaders(cfg, {'Content-Type':'application/json'}),
-    body: JSON.stringify(commitBody)
-  });
-  if(!newCommitRes.ok) throw new Error('커밋 생성에 실패했어요');
-  const newCommit = await newCommitRes.json();
-  if(commitSha){
-    const updateRefRes = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/git/refs/heads/${encodeURIComponent(branch)}`, {
-      method:'PATCH', headers: ghHeaders(cfg, {'Content-Type':'application/json'}),
-      body: JSON.stringify({ sha:newCommit.sha, force:true })
-    });
-    if(!updateRefRes.ok) throw new Error('브랜치 업데이트에 실패했어요 ('+updateRefRes.status+')');
-  } else {
-    // branch doesn't exist yet on this empty repo - create it pointing at our first commit
-    const createRefRes = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/git/refs`, {
-      method:'POST', headers: ghHeaders(cfg, {'Content-Type':'application/json'}),
-      body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: newCommit.sha })
-    });
-    if(!createRefRes.ok && createRefRes.status!==422){
-      throw new Error('브랜치 생성에 실패했어요 ('+createRefRes.status+')');
-    }
-    if(!createRefRes.ok){
-      // 422 here almost always means the branch was created moments ago by
-      // another sync attempt racing this one - just force-update it instead
-      const retryRes = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/git/refs/heads/${encodeURIComponent(branch)}`, {
-        method:'PATCH', headers: ghHeaders(cfg, {'Content-Type':'application/json'}),
-        body: JSON.stringify({ sha:newCommit.sha, force:true })
-      });
-      if(!retryRes.ok) throw new Error('브랜치 생성에 실패했어요 (재시도 실패)');
-    }
-  }
-}
 async function ghPutFile(cfg, content, sha){
-  if(content.length < 900000){
-    let res = await ghPutFileSimple(cfg, content, sha);
-    if(res.status===409 || res.status===422){
-      const latest = await ghGetFile(cfg).catch(()=>null);
-      res = await ghPutFileSimple(cfg, content, latest?latest.sha:undefined);
-    }
-    if(!res.ok){
-      const body = await res.json().catch(()=>({}));
-      throw new Error(body.message || ('GitHub 저장 실패 ('+res.status+')'));
-    }
-    return;
+  // GitHub's "create or update file contents" endpoint supports up to
+  // 100MB and correctly initializes an empty repo on its own - more than
+  // enough for us, and far more reliable than the lower-level Git Data API
+  // (blob/tree/commit/ref), which returns 409 for ANY operation on a
+  // completely empty repository and needs several sequential calls that can
+  // race with each other.
+  let res = await ghPutFileSimple(cfg, content, sha);
+  if(res.status===409 || res.status===422){
+    const latest = await ghGetFile(cfg).catch(()=>null);
+    res = await ghPutFileSimple(cfg, content, latest?latest.sha:undefined);
   }
-  try{
-    await ghPutFileViaGitData(cfg, content);
-  }catch(e){
-    // transient conflicts (a concurrent sync attempt, a moment-old branch,
-    // etc.) usually resolve themselves on a fresh attempt
-    await ghPutFileViaGitData(cfg, content);
+  if(!res.ok){
+    const body = await res.json().catch(()=>({}));
+    throw new Error(body.message || ('GitHub 저장 실패 ('+res.status+')'));
   }
 }
 
