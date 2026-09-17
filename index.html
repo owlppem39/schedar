@@ -1124,16 +1124,27 @@ async function ghPutFileViaGitData(cfg, content){
   if(commitSha){
     const updateRefRes = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/git/refs/heads/${encodeURIComponent(branch)}`, {
       method:'PATCH', headers: ghHeaders(cfg, {'Content-Type':'application/json'}),
-      body: JSON.stringify({ sha:newCommit.sha })
+      body: JSON.stringify({ sha:newCommit.sha, force:true })
     });
-    if(!updateRefRes.ok) throw new Error('브랜치 업데이트에 실패했어요');
+    if(!updateRefRes.ok) throw new Error('브랜치 업데이트에 실패했어요 ('+updateRefRes.status+')');
   } else {
     // branch doesn't exist yet on this empty repo - create it pointing at our first commit
     const createRefRes = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/git/refs`, {
       method:'POST', headers: ghHeaders(cfg, {'Content-Type':'application/json'}),
       body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: newCommit.sha })
     });
-    if(!createRefRes.ok) throw new Error('브랜치 생성에 실패했어요');
+    if(!createRefRes.ok && createRefRes.status!==422){
+      throw new Error('브랜치 생성에 실패했어요 ('+createRefRes.status+')');
+    }
+    if(!createRefRes.ok){
+      // 422 here almost always means the branch was created moments ago by
+      // another sync attempt racing this one - just force-update it instead
+      const retryRes = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/git/refs/heads/${encodeURIComponent(branch)}`, {
+        method:'PATCH', headers: ghHeaders(cfg, {'Content-Type':'application/json'}),
+        body: JSON.stringify({ sha:newCommit.sha, force:true })
+      });
+      if(!retryRes.ok) throw new Error('브랜치 생성에 실패했어요 (재시도 실패)');
+    }
   }
 }
 async function ghPutFile(cfg, content, sha){
@@ -1149,7 +1160,13 @@ async function ghPutFile(cfg, content, sha){
     }
     return;
   }
-  await ghPutFileViaGitData(cfg, content);
+  try{
+    await ghPutFileViaGitData(cfg, content);
+  }catch(e){
+    // transient conflicts (a concurrent sync attempt, a moment-old branch,
+    // etc.) usually resolve themselves on a fresh attempt
+    await ghPutFileViaGitData(cfg, content);
+  }
 }
 
 let ghSyncTimer = null;
