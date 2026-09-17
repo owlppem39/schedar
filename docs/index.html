@@ -1085,31 +1085,56 @@ async function ghPutFileViaGitData(cfg, content){
   // the lower-level Git Data API (blob -> tree -> commit -> ref update).
   const branch = cfg.branch||'main';
   const refRes = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/git/refs/heads/${encodeURIComponent(branch)}`, { headers: ghHeaders(cfg) });
-  if(!refRes.ok) throw new Error('브랜치 정보를 가져오지 못했어요');
-  const ref = await refRes.json();
-  const commitSha = ref.object.sha;
-  const commitRes = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/git/commits/${commitSha}`, { headers: ghHeaders(cfg) });
-  const commit = await commitRes.json();
+  let commitSha = null, baseTreeSha = null;
+  if(refRes.status===404){
+    // brand-new, completely empty repo (no commits yet) - we'll create the
+    // very first commit below instead of building on an existing one
+  } else if(!refRes.ok){
+    throw new Error('브랜치 정보를 가져오지 못했어요 ('+refRes.status+')');
+  } else {
+    const ref = await refRes.json();
+    commitSha = ref.object.sha;
+    const commitRes = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/git/commits/${commitSha}`, { headers: ghHeaders(cfg) });
+    if(!commitRes.ok) throw new Error('커밋 정보를 가져오지 못했어요');
+    const commit = await commitRes.json();
+    baseTreeSha = commit.tree.sha;
+  }
   const blobRes = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/git/blobs`, {
     method:'POST', headers: ghHeaders(cfg, {'Content-Type':'application/json'}),
     body: JSON.stringify({ content: utf8ToBase64(content), encoding:'base64' })
   });
+  if(!blobRes.ok) throw new Error('데이터 업로드에 실패했어요');
   const blob = await blobRes.json();
+  const treeBody = { tree:[{path:cfg.path, mode:'100644', type:'blob', sha:blob.sha}] };
+  if(baseTreeSha) treeBody.base_tree = baseTreeSha;
   const treeRes = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/git/trees`, {
     method:'POST', headers: ghHeaders(cfg, {'Content-Type':'application/json'}),
-    body: JSON.stringify({ base_tree: commit.tree.sha, tree:[{path:cfg.path, mode:'100644', type:'blob', sha:blob.sha}] })
+    body: JSON.stringify(treeBody)
   });
+  if(!treeRes.ok) throw new Error('트리 생성에 실패했어요');
   const tree = await treeRes.json();
+  const commitBody = { message:'Schedar sync '+new Date().toISOString(), tree:tree.sha };
+  if(commitSha) commitBody.parents = [commitSha];
   const newCommitRes = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/git/commits`, {
     method:'POST', headers: ghHeaders(cfg, {'Content-Type':'application/json'}),
-    body: JSON.stringify({ message:'Schedar sync '+new Date().toISOString(), tree:tree.sha, parents:[commitSha] })
+    body: JSON.stringify(commitBody)
   });
+  if(!newCommitRes.ok) throw new Error('커밋 생성에 실패했어요');
   const newCommit = await newCommitRes.json();
-  const updateRefRes = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/git/refs/heads/${encodeURIComponent(branch)}`, {
-    method:'PATCH', headers: ghHeaders(cfg, {'Content-Type':'application/json'}),
-    body: JSON.stringify({ sha:newCommit.sha })
-  });
-  if(!updateRefRes.ok) throw new Error('브랜치 업데이트에 실패했어요');
+  if(commitSha){
+    const updateRefRes = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/git/refs/heads/${encodeURIComponent(branch)}`, {
+      method:'PATCH', headers: ghHeaders(cfg, {'Content-Type':'application/json'}),
+      body: JSON.stringify({ sha:newCommit.sha })
+    });
+    if(!updateRefRes.ok) throw new Error('브랜치 업데이트에 실패했어요');
+  } else {
+    // branch doesn't exist yet on this empty repo - create it pointing at our first commit
+    const createRefRes = await fetch(`${GH_API}/repos/${cfg.owner}/${cfg.repo}/git/refs`, {
+      method:'POST', headers: ghHeaders(cfg, {'Content-Type':'application/json'}),
+      body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: newCommit.sha })
+    });
+    if(!createRefRes.ok) throw new Error('브랜치 생성에 실패했어요');
+  }
 }
 async function ghPutFile(cfg, content, sha){
   if(content.length < 900000){
