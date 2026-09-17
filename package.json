@@ -15,7 +15,7 @@
     "zip:win": "cd dist && zip -r Schedar-win32-x64.zip Schedar-win32-x64 && cd .."
   },
   "devDependencies": {
-    "electron": "^31.0.2",
+    "electron": "^43.2.0",
     "electron-packager": "^17.1.2"
   },
   "files": [
