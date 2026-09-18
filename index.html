@@ -305,6 +305,13 @@ body.platform-non-mac #titlebar{display:none;}
 .progress-fill{height:100%;border-radius:999px;transition:width .3s;}
 .subtask-list{margin-top:10px;display:flex;flex-direction:column;gap:5px;}
 .subtask-item{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;background:var(--surface-alt);}
+.sub-move-btns{display:none;flex-direction:column;gap:1px;flex-shrink:0;}
+.sub-move-btns button{
+  width:18px;height:13px;border:none;border-radius:3px;background:var(--surface);color:var(--ink-soft);
+  font-size:8px;line-height:1;display:flex;align-items:center;justify-content:center;
+}
+.sub-move-btns button:disabled{opacity:.25;}
+.sub-move-btns button:not(:disabled):active{background:var(--accent-soft);color:var(--accent-ink);}
 .subtask-item.drag-over{box-shadow:inset 0 0 0 2px var(--accent);}
 .subtask-item .drag-handle{cursor:grab;color:var(--ink-faint);font-size:11px;letter-spacing:-1px;flex-shrink:0;}
 .subtask-item .drag-handle:active{cursor:grabbing;}
@@ -613,6 +620,11 @@ body.platform-non-mac #titlebar{display:none;}
   .page-sticker-layer, .diary-sticker-layer{display:none;}
   .page-sticker-btn, #journalStickerBtn{display:none;}
   #stickerDrawerSection{display:none;}
+
+  /* Native HTML5 drag-and-drop (used for subtask reordering on desktop)
+     doesn't work with touch at all, so swap in explicit up/down buttons. */
+  .subtask-item .drag-handle{display:none;}
+  .sub-move-btns{display:flex;}
 }
 </style>
 </head>
@@ -2413,9 +2425,13 @@ function renderProjectItemsInto(wrap, list){
       </div>
       ${isCollapsed ? '' : `
       <div class="subtask-list">
-        ${subs.map(s=>`
+        ${subs.map((s,i)=>`
           <div class="subtask-item ${s.done?'done':''}" draggable="true" data-proj="${p.id}" data-id="${s.id}">
             <span class="drag-handle" title="드래그해서 순서 변경">⋮⋮</span>
+            <div class="sub-move-btns">
+              <button type="button" class="sub-move-up" data-proj="${p.id}" data-id="${s.id}" ${i===0?'disabled':''} title="위로">▲</button>
+              <button type="button" class="sub-move-down" data-proj="${p.id}" data-id="${s.id}" ${i===subs.length-1?'disabled':''} title="아래로">▼</button>
+            </div>
             <div class="checkbox round sub-cb" data-proj="${p.id}" data-id="${s.id}" style="width:15px;height:15px;${s.done?`background:${p.color};border-color:${p.color};`:''}">${s.done?'✓':''}</div>
             <input type="text" class="sub-title-edit" data-proj="${p.id}" data-id="${s.id}" value="${escapeHtml(s.title)}">
             <input type="date" class="sub-date-edit" data-proj="${p.id}" data-id="${s.id}" value="${s.date||''}">
@@ -2491,12 +2507,25 @@ function renderProjectItemsInto(wrap, list){
       saveState(); renderHome(); renderCalendar();
     });
   });
+  function moveSubtask(projId, id, delta){
+    const p = state.projects.find(x=>x.id===projId);
+    if(!p) return;
+    const list = p.subtasks||[];
+    const idx = list.findIndex(x=>x.id===id);
+    const target = idx+delta;
+    if(idx===-1 || target<0 || target>=list.length) return;
+    const [moved] = list.splice(idx,1);
+    list.splice(target,0,moved);
+    saveState(); renderProjectList();
+  }
+  $$('.sub-move-up', wrap).forEach(btn=> btn.addEventListener('click', ()=> moveSubtask(btn.dataset.proj, btn.dataset.id, -1)));
+  $$('.sub-move-down', wrap).forEach(btn=> btn.addEventListener('click', ()=> moveSubtask(btn.dataset.proj, btn.dataset.id, 1)));
 
   /* drag to reorder subtasks within the same project */
   let draggingSub = null;
   $$('.subtask-item', wrap).forEach(row=>{
     row.addEventListener('dragstart', e=>{
-      if(e.target.closest('.sub-title-edit') || e.target.closest('.sub-date-edit') || e.target.closest('.sub-cb') || e.target.closest('.sub-del')){ e.preventDefault(); return; }
+      if(e.target.closest('.sub-title-edit') || e.target.closest('.sub-date-edit') || e.target.closest('.sub-cb') || e.target.closest('.sub-del') || e.target.closest('.sub-move-btns')){ e.preventDefault(); return; }
       draggingSub = {projId: row.dataset.proj, subId: row.dataset.id};
       e.dataTransfer.effectAllowed='move';
     });
